@@ -12,8 +12,10 @@ def verificar_usuario(username):
 # Função para cadastrar novo usuário
 def cadastrar_usuario(username, password):
     if not os.path.exists("usuarios.csv"):
+        # Criar o arquivo CSV com cabeçalho se não existir
         with open("usuarios.csv", "w") as f:
             f.write("username,password\n")
+    # Adicionar novo usuário ao arquivo CSV
     with open("usuarios.csv", "a") as f:
         f.write(f"{username},{password}\n")
 
@@ -22,7 +24,7 @@ def verificar_login(username, password):
     if not os.path.exists("usuarios.csv"):
         return False
     usuarios = pd.read_csv("usuarios.csv")
-    for index, row in usuarios.iterrows():
+    for _, row in usuarios.iterrows():
         if row['username'] == username and row['password'] == password:
             return True
     return False
@@ -52,7 +54,7 @@ def pagina_login():
         if verificar_login(username, password):
             st.session_state['login'] = True
             st.session_state['usuario'] = username
-            st.experimental_rerun()  # Redireciona para a página principal
+            st.session_state['pagina'] = "Principal"  # Redireciona para a página principal após login
         else:
             st.error("Usuário ou senha incorretos")
 
@@ -60,24 +62,43 @@ def pagina_login():
 def pagina_principal():
     st.title(f"Bem-vindo, {st.session_state['usuario']}")
     st.write("Esta é a página principal após o login.")
-    # Adicione mais informações ou funcionalidades aqui
     st.text("Parabéns, você entrou com sucesso!")
     st.image("nj.jpg")
+    if st.button("Sair"):
+        st.session_state['login'] = False
+        st.session_state['usuario'] = None
+        st.session_state['pagina'] = "Login"  # Redireciona para a página de login
 
 # Função principal para controlar a navegação entre as páginas
 def main():
-    st.sidebar.title("Navegação")
+    # Inicializa o estado da sessão se não estiver definido
     if 'login' not in st.session_state:
         st.session_state['login'] = False
+    if 'pagina' not in st.session_state:
+        st.session_state['pagina'] = "Login"  # Página inicial
 
+    # Controle de navegação baseado na página atual
     if st.session_state['login']:
-        pagina_principal()
+        st.sidebar.title("Navegação")
+        pagina = st.sidebar.selectbox("Selecione a Página", ["Principal", "Logout"])
+        if pagina == "Logout":
+            st.session_state['login'] = False
+            st.session_state['usuario'] = None
+            st.session_state['pagina'] = "Login"
     else:
         pagina = st.sidebar.selectbox("Selecione a Página", ["Cadastro", "Login"])
-        if pagina == "Cadastro":
-            pagina_cadastro()
-        elif pagina == "Login":
-            pagina_login()
+
+    if pagina == "Cadastro":
+        pagina_cadastro()
+    elif pagina == "Login":
+        pagina_login()
+    elif pagina == "Principal":
+        if st.session_state['login']:
+            pagina_principal()
+        else:
+            st.warning("Por favor, faça o login primeiro.")
 
 if __name__ == "__main__":
+    if 'login' not in st.session_state:
+        st.session_state['login'] = False
     main()
